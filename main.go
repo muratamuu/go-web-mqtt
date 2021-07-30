@@ -2,46 +2,35 @@ package main
 
 import (
   "net/http"
-  "text/template"
 )
 
-var templates = make(map[string]*template.Template)
+const (
+  authUser = "user"
+  authPass = "Iwasaki2017!"
+)
 
-func loadTemplate(name string) *template.Template {
-  t, err := template.ParseFiles(
-    "templates/" + name + ".html",
-    "templates/_header.html",
-    "templates/_footer.html",
-  )
-  if err != nil {
-    panic(err)
-  }
-  return t
+func checkAuth(r *http.Request) bool {
+  user, pass, ok := r.BasicAuth()
+  return ok && user == authUser && pass == authPass
 }
 
 func handleIndex(w http.ResponseWriter, r *http.Request) {
-  if err := templates["index"].Execute(w, nil); err != nil {
-    panic(err)
+  if checkAuth(r) == false {
+    w.Header().Add("WWW-Authenticate", `Basic realm="SECRET AREA"`)
+    w.WriteHeader(http.StatusUnauthorized)
+    http.Error(w, "Unauthorized", 401)
+    return
   }
-}
-
-func handleLogin(w http.ResponseWriter, r *http.Request) {
-  if err := templates["login"].Execute(w, nil); err != nil {
-    panic(err)
+  path := r.URL.Path[1:]
+  if path == "" {
+    path = "main.html"
   }
-}
-
-func handleLogout(w http.ResponseWriter, r *http.Request) {
-  panic("")
+  w.Header().Add("Cache-Control", "no-store")
+  http.ServeFile(w, r, "static/" + path)
 }
 
 func main() {
-  templates["index"] = loadTemplate("index");
-  templates["login"] = loadTemplate("login");
   http.HandleFunc("/", handleIndex)
-  http.HandleFunc("/login", handleLogin)
-  http.HandleFunc("/logout", handleLogout)
-  http.Handle("/static/", http.FileServer(http.Dir(".")))
   http.ListenAndServe(":8080", nil)
 }
 

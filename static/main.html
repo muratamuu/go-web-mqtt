@@ -1,17 +1,22 @@
-{{template "header"}}
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sensor viewer</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.3/css/bulma.min.css" />
+</head>
+<body>
+<section class="hero is-primary is-fullheight">
 
 <link rel=stylesheet type=text/css href="//vjs.zencdn.net/7.11.4/video-js.min.css">
-<link rel=stylesheet type=text/css href="static/css/main.css">
 
 <script src="//cdn.jsdelivr.net/npm/vue@2.6.10/dist/vue.min.js"></script>
 <script src="//cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 
 <div id="app" class="container has-text-centered">
-  <div class="level">
-    <span class="level-item level-right">
-      <a class="button is-text is-primary" href="/logout">ログアウト</a>
-    </span>
-  </div>
+  <br/>
 
   <div class="level">
     <div class="level-left">
@@ -28,14 +33,14 @@
   <table class="table is-bordered is-fullwidth" style="table-layout: fixed;">
     <tbody>
       <tr>
-        <td class="sensor-row" v-for="(sensor, index) in sensors[0]" :key="index">
+        <td style="height: 100px;" v-for="(sensor, index) in sensors[0]" :key="index">
           <p class="has-text-primary-dark content" v-if="sensor.label.length < 5">[[ sensor.label ]]</p>
           <p class="has-text-primary-dark content is-small" v-else>[[ sensor.label ]]</p>
           <p class="has-text-primary-dark">[[ `${sensor.value} ${sensor.unit}` ]]</p>
         </td>
       </tr>
       <tr>
-        <td class="sensor-row" v-for="(sensor, index) in sensors[1]" :key="index">
+        <td style="height: 100px;" v-for="(sensor, index) in sensors[1]" :key="index">
           <p class="has-text-primary-dark">[[ sensor.label ]]</p>
           <p class="has-text-primary-dark">[[ `${sensor.value} ${sensor.unit}` ]]</p>
         </td>
@@ -62,7 +67,9 @@
   </div>
 </div>
 
-<script src="static/js/main.js"></script>
+<script src="main.js"></script>
 <script src="//vjs.zencdn.net/7.14.1/video.min.js"></script>
 
-{{template "footer"}}
+</section>
+</body>
+</html>
