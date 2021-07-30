@@ -104,7 +104,7 @@ new Vue({
 
     // 環境センサデータをサーバから取得する
     async fetchSensorData() {
-      const {data:{sensor: resSensor}} = await axios.get("/api/sensor");
+      const {data: resSensor} = await axios.get("/api/sensor");
       this.sensorTimeStamp = new Date(Date.parse(resSensor.timestamp));
       for (const sensor_ of this.sensors) {
         for (const sensor of sensor_) {
