@@ -1,0 +1,68 @@
+{{template "header"}}
+
+<link rel=stylesheet type=text/css href="//vjs.zencdn.net/7.11.4/video-js.min.css">
+<link rel=stylesheet type=text/css href="static/css/main.css">
+
+<script src="//cdn.jsdelivr.net/npm/vue@2.6.10/dist/vue.min.js"></script>
+<script src="//cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+<div id="app" class="container has-text-centered">
+  <div class="level">
+    <span class="level-item level-right">
+      <a class="button is-text is-primary" href="/logout">ログアウト</a>
+    </span>
+  </div>
+
+  <div class="level">
+    <div class="level-left">
+      <div class="subtitle is-5 level-item">
+        <strong>[[ timeStampLabel ]]</strong>
+      </div>
+    </div>
+    <div class="level-right">
+      <button class="button is-info is-large is-rounded level-item" @click="fetchVideo" :disabled="isPolling">映像取得</button>
+      <button class="button is-info is-large is-rounded level-item" @click="fetchImage">画像取得</button>
+    </div>
+  </div>
+
+  <table class="table is-bordered is-fullwidth" style="table-layout: fixed;">
+    <tbody>
+      <tr>
+        <td class="sensor-row" v-for="(sensor, index) in sensors[0]" :key="index">
+          <p class="has-text-primary-dark content" v-if="sensor.label.length < 5">[[ sensor.label ]]</p>
+          <p class="has-text-primary-dark content is-small" v-else>[[ sensor.label ]]</p>
+          <p class="has-text-primary-dark">[[ `${sensor.value} ${sensor.unit}` ]]</p>
+        </td>
+      </tr>
+      <tr>
+        <td class="sensor-row" v-for="(sensor, index) in sensors[1]" :key="index">
+          <p class="has-text-primary-dark">[[ sensor.label ]]</p>
+          <p class="has-text-primary-dark">[[ `${sensor.value} ${sensor.unit}` ]]</p>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="level" v-if="!video">
+    <div class="level-item">
+      <p class="box has-text-primary-dark">映像を取得していません</p>
+    </div>
+  </div>
+
+  <div class="level">
+    <div class="level-item">
+      <video
+        id="video"
+        class="vjs-default-skin vjs-big-play-centered"
+        muted
+        playsinline
+        data-setup='{}'
+      />
+    </div>
+  </div>
+</div>
+
+<script src="static/js/main.js"></script>
+<script src="//vjs.zencdn.net/7.14.1/video.min.js"></script>
+
+{{template "footer"}}
