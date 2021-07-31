@@ -9,6 +9,7 @@ import (
   mqtt "github.com/eclipse/paho.mqtt.golang"
   "encoding/json"
   "sync"
+  "os/exec"
 )
 
 // HTTP Basic認証のユーザ・パスワード
@@ -111,13 +112,42 @@ func handleSensor(w http.ResponseWriter, r *http.Request) {
   fmt.Fprintf(w, string(json))
 }
 
+// ffmpegの動画キャプチャ処理開始
+func startFFmpeg(videoSrc string, videoCodec string, videoDir string) {
+  path, err := exec.LookPath("ffmpeg")
+  if err != nil {
+    log.Printf("%v", err)
+    return
+  }
+  cmd := fmt.Sprintf(
+    "%s " +
+    "-i %s " +
+    "-c:v %s " +
+    "-an " +
+    "-f segment " +
+    "-segment_list_flags live " +
+    "-segment_time 1 " +
+    "-segment_list_size 5 " +
+    "-segment_wrap 50 " +
+    "-segment_list %s/index.m3u8 " +
+    "%s/%%3d.ts " +
+    "> /dev/null 2>&1 < /dev/null",
+    path, videoSrc, videoCodec, videoDir, videoDir)
+  err = exec.Command("sh", "-c", cmd).Start()
+  if err != nil {
+    log.Fatal(err)
+  }
+}
+
 // コマンド引数
 type Args struct {
   httpPort int
   mqttPort int
-  videoDir string
   authUser string
   authPass string
+  videoDir string
+  videoSrc string
+  videoCodec string
 }
 
 // コマンド引数解析
@@ -125,9 +155,11 @@ func parseArgs() Args {
   args := Args{}
   flag.IntVar(&args.httpPort, "http", 8080, "http listen port.")
   flag.IntVar(&args.mqttPort, "mqtt", 0, "mqtt listen port.")
-  flag.StringVar(&args.videoDir, "dir", "stream", "hls video saved dir")
   flag.StringVar(&args.authUser, "user", "user", "basic auth username")
   flag.StringVar(&args.authPass, "pass", "Iwasaki2017!", "basic auth password")
+  flag.StringVar(&args.videoDir, "dir", "/tmp/video", "hls video saved dir (/tmp/video)")
+  flag.StringVar(&args.videoSrc, "video", "rtsp://root:Iwasaki2017!@192.168.0.90/axis-media/media.awp", "video input source (rtsp://user:pass@192.168.0.90/axis-media/media.amp)")
+  flag.StringVar(&args.videoCodec, "codec", "copy", "video output codec (copy or h264_omx)")
   flag.Parse()
   return args
 }
@@ -162,6 +194,9 @@ func main() {
       log.Fatalf("Mqtt error: %s\n", subscribeToken.Error())
     }
   }
+
+  // ffmpeg処理開始
+  startFFmpeg(args.videoSrc, args.videoCodec, args.videoDir)
 
   http.HandleFunc("/", handleIndex)
   http.HandleFunc("/video/", func(w http.ResponseWriter, r *http.Request) { handleVideo(w, r, args.videoDir) })
