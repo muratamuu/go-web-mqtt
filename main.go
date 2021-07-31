@@ -11,6 +11,7 @@ import (
   "sync"
   "os/exec"
   "os"
+  "time"
 )
 
 // HTTP Basic認証のユーザ・パスワード
@@ -21,7 +22,7 @@ var g_pass string
 var g_mutex sync.Mutex
 
 // 環境センサの最新更新値
-var g_sensor Sensor
+var g_sensor = Sensor{TimeStamp: time.Now().Format(time.RFC3339)}
 
 // MQTTからJSONで取得する環境センサの型
 type Sensor struct {
@@ -155,12 +156,12 @@ type Args struct {
 func parseArgs() Args {
   args := Args{}
   flag.IntVar(&args.httpPort, "http", 8080, "http listen port.")
-  flag.IntVar(&args.mqttPort, "mqtt", 0, "mqtt listen port.")
+  flag.IntVar(&args.mqttPort, "mqtt", 21883, "mqtt listen port.")
   flag.StringVar(&args.authUser, "user", "user", "basic auth username")
   flag.StringVar(&args.authPass, "pass", "Iwasaki2017!", "basic auth password")
-  flag.StringVar(&args.videoDir, "dir", "/tmp/video", "hls video saved dir (/tmp/video)")
-  flag.StringVar(&args.videoSrc, "video", "rtsp://root:Iwasaki2017!@192.168.0.90/axis-media/media.awp", "video input source (rtsp://user:pass@192.168.0.90/axis-media/media.amp)")
-  flag.StringVar(&args.videoCodec, "codec", "copy", "video output codec (copy or h264_omx)")
+  flag.StringVar(&args.videoDir, "dir", "/tmp/video", "hls video saved dir")
+  flag.StringVar(&args.videoSrc, "video", "rtsp://root:Iwasaki2017!@192.168.0.90/axis-media/media.awp", "video input source")
+  flag.StringVar(&args.videoCodec, "codec", "copy", "video output codec")
   flag.Parse()
   return args
 }
