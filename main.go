@@ -173,8 +173,10 @@ func main() {
   g_pass = args.authPass
 
   // videoディレクトリ作成
-  if err := os.MkdirAll(args.videoDir, 0777); err != nil {
-    log.Fatal(err)
+  if _, err := os.Stat(args.videoDir); os.IsNotExist(err) {
+    if err := os.MkdirAll(args.videoDir, 0777); err != nil {
+      log.Fatal(err)
+    }
   }
 
   var f mqtt.MessageHandler = func(c mqtt.Client, m mqtt.Message) {
