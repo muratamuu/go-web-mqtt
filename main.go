@@ -111,18 +111,33 @@ func handleSensor(w http.ResponseWriter, r *http.Request) {
   fmt.Fprintf(w, string(json))
 }
 
+// コマンド引数
+type Args struct {
+  httpPort int
+  mqttPort int
+  videoDir string
+  authUser string
+  authPass string
+}
+
+// コマンド引数解析
+func parseArgs() Args {
+  args := Args{}
+  flag.IntVar(&args.httpPort, "http", 8080, "http listen port.")
+  flag.IntVar(&args.mqttPort, "mqtt", 0, "mqtt listen port.")
+  flag.StringVar(&args.videoDir, "dir", "stream", "hls video saved dir")
+  flag.StringVar(&args.authUser, "user", "user", "basic auth username")
+  flag.StringVar(&args.authPass, "pass", "Iwasaki2017!", "basic auth password")
+  flag.Parse()
+  return args
+}
+
 // メイン関数
 func main() {
   // コマンド引数解析
-  var httpPort int
-  flag.IntVar(&httpPort, "http", 8080, "http listen port.")
-  var mqttPort int
-  flag.IntVar(&mqttPort, "mqtt", 0, "mqtt listen port.")
-  var videoDir string
-  flag.StringVar(&videoDir, "dir", "stream", "hls video saved dir")
-  flag.StringVar(&g_user, "user", "user", "basic auth username")
-  flag.StringVar(&g_pass, "pass", "Iwasaki2017!", "basic auth password")
-  flag.Parse()
+  args := parseArgs()
+  g_user = args.authUser
+  g_pass = args.authPass
 
   var f mqtt.MessageHandler = func(c mqtt.Client, m mqtt.Message) {
     var sensor Sensor
@@ -134,9 +149,9 @@ func main() {
     g_mutex.Unlock()
   }
 
-  if mqttPort != 0 {
+  if args.mqttPort != 0 {
     opts := mqtt.NewClientOptions()
-    opts.AddBroker(fmt.Sprintf("tcp://localhost:%d", mqttPort))
+    opts.AddBroker(fmt.Sprintf("tcp://localhost:%d", args.mqttPort))
     client := mqtt.NewClient(opts)
 
     if token := client.Connect(); token.Wait() && token.Error() != nil {
@@ -149,10 +164,10 @@ func main() {
   }
 
   http.HandleFunc("/", handleIndex)
-  http.HandleFunc("/video/", func(w http.ResponseWriter, r *http.Request) { handleVideo(w, r, videoDir) })
+  http.HandleFunc("/video/", func(w http.ResponseWriter, r *http.Request) { handleVideo(w, r, args.videoDir) })
   http.HandleFunc("/api/sensor/", handleSensor)
-  fmt.Printf("Start Server (port:%d)\n", httpPort)
-  http.ListenAndServe(fmt.Sprintf(":%d", httpPort), nil)
+  fmt.Printf("Start Server (port:%d)\n", args.httpPort)
+  http.ListenAndServe(fmt.Sprintf(":%d", args.httpPort), nil)
 }
 
 const indexHTML = `<!DOCTYPE html>
