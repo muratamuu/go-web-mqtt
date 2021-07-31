@@ -67,7 +67,7 @@ new Vue({
       this.video = videojs('video');
       // index.m3u8を取り直す
       this.video.reset();
-      this.video.src("/stream/index.m3u8");
+      this.video.src("/video/index.m3u8");
       // 再生
       this.video.play();
       this.video.one("loadedmetadata", () => {
@@ -88,7 +88,7 @@ new Vue({
       this.video = videojs('video');
       // index.m3u8を取り直す
       this.video.reset();
-      this.video.src("/stream/index.m3u8");
+      this.video.src("/video/index.m3u8");
       // 再生
       this.video.play();
       // 再生が開始されたら停止して、画像が残るようにpauseにしておく

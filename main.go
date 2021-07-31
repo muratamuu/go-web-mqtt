@@ -4,6 +4,7 @@ import (
   "fmt"
   "log"
   "flag"
+  "strings"
   "net/http"
   mqtt "github.com/eclipse/paho.mqtt.golang"
   "encoding/json"
@@ -70,6 +71,20 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
   http.ServeFile(w, r, path)
 }
 
+// "/stream"へのGETのハンドラ - index.m3u8, [nnn].tsを返す
+func handleVideo(w http.ResponseWriter, r *http.Request, dir string) {
+  if checkAuth(r) == false {
+    w.Header().Add("WWW-Authenticate", `Basic realm="SECRET AREA"`)
+    w.WriteHeader(http.StatusUnauthorized)
+    http.Error(w, "Unauthorized", 401)
+    return
+  }
+  // /stream/index.m3u8という文字列からindex.m3u8というファイル名部分を取り出す
+  fileName := strings.Split(r.URL.Path[1:], "/")[1]
+  w.Header().Add("Cache-Control", "no-store")
+  http.ServeFile(w, r, dir + "/" + fileName)
+}
+
 // "/api/sensor"へのGETのハンドラ - 環境センサの値を返す
 func handleSensor(w http.ResponseWriter, r *http.Request) {
   if checkAuth(r) == false {
@@ -100,6 +115,8 @@ func main() {
   flag.IntVar(&httpPort, "http", 8080, "http listen port.")
   var mqttPort int
   flag.IntVar(&mqttPort, "mqtt", 0, "mqtt listen port.")
+  var videoDir string
+  flag.StringVar(&videoDir, "dir", "stream", "hls video saved dir")
   flag.Parse()
 
   var f mqtt.MessageHandler = func(c mqtt.Client, m mqtt.Message) {
@@ -127,7 +144,8 @@ func main() {
   }
 
   http.HandleFunc("/", handleIndex)
-  http.HandleFunc("/api/sensor", handleSensor)
+  http.HandleFunc("/video/", func(w http.ResponseWriter, r *http.Request) { handleVideo(w, r, videoDir) })
+  http.HandleFunc("/api/sensor/", handleSensor)
   fmt.Printf("Start Server (port:%d)\n", httpPort)
   http.ListenAndServe(fmt.Sprintf(":%d", httpPort), nil)
 }
