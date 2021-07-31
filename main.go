@@ -12,10 +12,8 @@ import (
 )
 
 // HTTP Basic認証のユーザ・パスワード
-const (
-  authUser = "user"
-  authPass = "Iwasaki2017!"
-)
+var g_user string
+var g_pass string
 
 // MQTTスレッドとHTTPスレッドでg_sensorの読み書きを行う際の排他処理で使用する
 var g_mutex sync.Mutex
@@ -50,7 +48,7 @@ type Sensor struct {
 // Basic認証チェック false:認証エラー
 func checkAuth(r *http.Request) bool {
   user, pass, ok := r.BasicAuth()
-  return ok && user == authUser && pass == authPass
+  return ok && user == g_user && pass == g_pass
 }
 
 // "/"へのGETのハンドラ - main.html, main.jsを返す
@@ -63,9 +61,12 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
   }
   // ServeFileは"/index.html"というパスを"/"に変えてリダイレクトする仕様がある
   // "/"の場合はmain.htmlの中身を返すようにして/index.htmlの取得でループしないようにする
-  path := r.URL.Path[1:]
-  if path == "" {
+  var path string
+  switch r.URL.Path {
+  case "/":
     path = "static/main.html"
+  default:
+    path = r.URL.Path[1:]
   }
   w.Header().Add("Cache-Control", "no-store")
   http.ServeFile(w, r, path)
@@ -117,6 +118,8 @@ func main() {
   flag.IntVar(&mqttPort, "mqtt", 0, "mqtt listen port.")
   var videoDir string
   flag.StringVar(&videoDir, "dir", "stream", "hls video saved dir")
+  flag.StringVar(&g_user, "user", "user", "basic auth username")
+  flag.StringVar(&g_pass, "pass", "Iwasaki2017!", "basic auth password")
   flag.Parse()
 
   var f mqtt.MessageHandler = func(c mqtt.Client, m mqtt.Message) {
