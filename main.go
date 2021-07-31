@@ -156,7 +156,7 @@ type Args struct {
 func parseArgs() Args {
   args := Args{}
   flag.IntVar(&args.httpPort, "http", 8080, "http listen port.")
-  flag.IntVar(&args.mqttPort, "mqtt", 21883, "mqtt listen port.")
+  flag.IntVar(&args.mqttPort, "mqtt", 0, "mqtt listen port. (please set 21883)")
   flag.StringVar(&args.authUser, "user", "user", "basic auth username")
   flag.StringVar(&args.authPass, "pass", "Iwasaki2017!", "basic auth password")
   flag.StringVar(&args.videoDir, "dir", "/var/video", "hls video saved dir")
