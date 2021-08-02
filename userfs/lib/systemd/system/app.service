@@ -1,5 +1,5 @@
 [Unit]
-Description=iwasaki service
+Description=iwasaki app service
 Requires=rc-local.service
 After=rc-local.service
 RequiresMountsFor=/media/emmc
