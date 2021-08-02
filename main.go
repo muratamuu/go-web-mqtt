@@ -160,7 +160,7 @@ func parseArgs() Args {
   flag.StringVar(&args.authUser, "user", "user", "basic auth username")
   flag.StringVar(&args.authPass, "pass", "Iwasaki2017!", "basic auth password")
   flag.StringVar(&args.videoDir, "dir", "/var/video", "hls video saved dir")
-  flag.StringVar(&args.videoSrc, "video", "rtsp://root:Iwasaki2017!@192.168.0.90/axis-media/media.awp", "video input source")
+  flag.StringVar(&args.videoSrc, "video", "rtsp://root:Iwasaki2017!@192.168.0.90/axis-media/media.amp", "video input source")
   flag.StringVar(&args.videoCodec, "codec", "copy", "video output codec")
   flag.Parse()
   return args
