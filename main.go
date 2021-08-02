@@ -27,14 +27,14 @@ var g_sensor = Sensor{TimeStamp: time.Now().Format(time.RFC3339)}
 // MQTTからJSONで取得する環境センサの型
 type Sensor struct {
   TimeStamp string `json:"timestamp"`                                    // *タイムスタンプ
-  ErrorFlag int `json:"errorFlag"`                                       // *エラーフラグ
+  ErrorFlag float64 `json:"errorFlag"`                                       // *エラーフラグ
   WindVelocity float64 `json:"windVelocity"`                             // *風速
   WindDirection float64 `json:"windDirection"`                           // *風向き
   Temperature float64 `json:"temperature"`                               // *温度
-  Humidity int `json:"humidity"`                                         // *湿度
-  AirPressure int `json:"airPressure"`                                   // *気圧
-  Illuminance int `json:"illuminance"`                                   // *照度
-  RainLevel int `json:"rainLevel"`                                       // *レインレベル
+  Humidity float64 `json:"humidity"`                                         // *湿度
+  AirPressure float64 `json:"airPressure"`                                   // *気圧
+  Illuminance float64 `json:"illuminance"`                                   // *照度
+  RainLevel float64 `json:"rainLevel"`                                       // *レインレベル
   UltraVioletA float64 `json:"ultraVioletA"`                             // *UVA
   UltraVioletB float64 `json:"ultraVioletB"`                             // UVB
   AccelerationX float64 `json:"accelerationX"`                           // *加速度X軸
