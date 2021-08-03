@@ -9,7 +9,6 @@ import (
   mqtt "github.com/eclipse/paho.mqtt.golang"
   "encoding/json"
   "sync"
-  "os/exec"
   "os"
   "time"
 )

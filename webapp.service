@@ -1,0 +1,15 @@
+[Unit]
+Description=iwasaki webapp service
+Requires=rc-local.service
+After=rc-local.service
+
+[Service]
+ExecStart=/usr/local/bin/webapp
+Restart=always
+RestartSec=10s
+TimeoutStartSec=0
+StartLimitInterval=60s
+StartLimitBurst=86400
+
+[Install]
+WantedBy=multi-user.target
