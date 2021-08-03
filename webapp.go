@@ -11,6 +11,7 @@ import (
   "sync"
   "os"
   "time"
+  "path/filepath"
 )
 
 // HTTP Basic認証のユーザ・パスワード
@@ -54,7 +55,7 @@ func checkAuth(r *http.Request) bool {
 }
 
 // "/"へのGETのハンドラ - main.html, main.jsを返す
-func handleIndex(w http.ResponseWriter, r *http.Request) {
+func handleIndex(w http.ResponseWriter, r *http.Request, dir string) {
   if checkAuth(r) == false {
     w.Header().Add("WWW-Authenticate", `Basic realm="SECRET AREA"`)
     w.WriteHeader(http.StatusUnauthorized)
@@ -67,12 +68,12 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
   var path string
   switch r.URL.Path {
   case "/":
-    path = "static/main.html"
+    path = "main.html"
   default:
     path = r.URL.Path[1:]
   }
   w.Header().Add("Cache-Control", "no-store")
-  http.ServeFile(w, r, path)
+  http.ServeFile(w, r, dir + "/" + path)
 }
 
 // "/video"へのGETのハンドラ - index.m3u8, [nnn].tsを返す
@@ -114,8 +115,7 @@ type Args struct {
   authUser string
   authPass string
   videoDir string
-  videoSrc string
-  videoCodec string
+  htmlDir  string
 }
 
 // コマンド引数解析
@@ -126,6 +126,9 @@ func parseArgs() Args {
   flag.StringVar(&args.authUser, "user", "user", "basic auth username")
   flag.StringVar(&args.authPass, "pass", "Iwasaki2017!", "basic auth password")
   flag.StringVar(&args.videoDir, "dir", "/var/video", "hls video saved dir")
+  exe, _ := os.Executable()
+  htmlDir := filepath.Dir(exe) + "/static"
+  flag.StringVar(&args.htmlDir, "html", htmlDir, "html asset dir")
   flag.Parse()
   return args
 }
@@ -169,7 +172,9 @@ func main() {
     }
   }
 
-  http.HandleFunc("/", handleIndex)
+  http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+    handleIndex(w, r, args.htmlDir)
+  })
   http.HandleFunc("/video/", func(w http.ResponseWriter, r *http.Request) {
     handleVideo(w, r, args.videoDir)
   })
