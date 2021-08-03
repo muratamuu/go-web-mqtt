@@ -108,33 +108,6 @@ func handleSensor(w http.ResponseWriter, r *http.Request) {
   fmt.Fprintf(w, string(json))
 }
 
-// ffmpegの動画キャプチャ処理開始
-func startFFmpeg(videoSrc string, videoCodec string, videoDir string) {
-  path, err := exec.LookPath("ffmpeg")
-  if err != nil {
-    log.Printf("%v", err)
-    return
-  }
-  cmd := fmt.Sprintf(
-    "%s " +
-    "-i %s " +
-    "-c:v %s " +
-    "-an " +
-    "-f segment " +
-    "-segment_list_flags live " +
-    "-segment_time 1 " +
-    "-segment_list_size 5 " +
-    "-segment_wrap 50 " +
-    "-segment_list %s/index.m3u8 " +
-    "%s/%%3d.ts " +
-    "> /dev/null 2>&1 < /dev/null",
-    path, videoSrc, videoCodec, videoDir, videoDir)
-  err = exec.Command("sh", "-c", cmd).Start()
-  if err != nil {
-    log.Fatal(err)
-  }
-}
-
 // コマンド引数
 type Args struct {
   httpPort int
@@ -154,8 +127,6 @@ func parseArgs() Args {
   flag.StringVar(&args.authUser, "user", "user", "basic auth username")
   flag.StringVar(&args.authPass, "pass", "Iwasaki2017!", "basic auth password")
   flag.StringVar(&args.videoDir, "dir", "/var/video", "hls video saved dir")
-  flag.StringVar(&args.videoSrc, "video", "rtsp://root:Iwasaki2017!@192.168.0.90/axis-media/media.amp", "video input source")
-  flag.StringVar(&args.videoCodec, "codec", "copy", "video output codec")
   flag.Parse()
   return args
 }
@@ -198,9 +169,6 @@ func main() {
       log.Fatalf("Mqtt error: %s\n", subscribeToken.Error())
     }
   }
-
-  // ffmpeg処理開始
-  startFFmpeg(args.videoSrc, args.videoCodec, args.videoDir)
 
   http.HandleFunc("/", handleIndex)
   http.HandleFunc("/video/", func(w http.ResponseWriter, r *http.Request) {

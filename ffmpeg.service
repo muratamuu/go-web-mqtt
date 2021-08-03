@@ -1,0 +1,15 @@
+[Unit]
+Description=iwasaki ffmpeg service
+Requires=rc-local.service
+After=rc-local.service
+
+[Service]
+ExecStart=/usr/bin/ffmpeg -i /dev/video0 -c:v h264_omx -an -f segment -segment_list_flags live -segment_time 1 -segment_list_size 5 -segment_wrap 50 -segment_list /var/video/index.m3u8 /var/video/%3d.ts
+Restart=always
+RestartSec=10s
+TimeoutStartSec=0
+StartLimitInterval=60s
+StartLimitBurst=86400
+
+[Install]
+WantedBy=multi-user.target
