@@ -10,3 +10,9 @@
 cemkfw --info "iwasaki app v1.0" --fwver 2 --userfs userfs --output iwasaki.frm
 ```
 
+# frm書き込み
+
+```
+cefirm --name /media/emmc/local/debian/root/iwasaki.frm --mode update --area all
+```
+

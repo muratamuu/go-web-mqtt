@@ -2,11 +2,9 @@
 Description=iwasaki mqtt service
 Requires=rc-local.service
 After=rc-local.service
-#RequiresMountsFor=/media/emmc
 
 [Service]
-ExecStart=/usr/sbin/mosquitto -d -p 21883
-KillMode=process
+ExecStart=/usr/sbin/mosquitto -p 21883
 Restart=always
 RestartSec=10s
 TimeoutStartSec=0
@@ -15,4 +13,3 @@ StartLimitBurst=86400
 
 [Install]
 WantedBy=multi-user.target
-
