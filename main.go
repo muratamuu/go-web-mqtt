@@ -27,14 +27,14 @@ var g_sensor = Sensor{TimeStamp: time.Now().Format(time.RFC3339)}
 // MQTTからJSONで取得する環境センサの型
 type Sensor struct {
   TimeStamp string `json:"timestamp"`                                    // *タイムスタンプ
-  ErrorFlag float64 `json:"errorFlag"`                                       // *エラーフラグ
+  ErrorFlag float64 `json:"errorFlag"`                                   // *エラーフラグ
   WindVelocity float64 `json:"windVelocity"`                             // *風速
   WindDirection float64 `json:"windDirection"`                           // *風向き
   Temperature float64 `json:"temperature"`                               // *温度
-  Humidity float64 `json:"humidity"`                                         // *湿度
-  AirPressure float64 `json:"airPressure"`                                   // *気圧
-  Illuminance float64 `json:"illuminance"`                                   // *照度
-  RainLevel float64 `json:"rainLevel"`                                       // *レインレベル
+  Humidity float64 `json:"humidity"`                                     // *湿度
+  AirPressure float64 `json:"airPressure"`                               // *気圧
+  Illuminance float64 `json:"illuminance"`                               // *照度
+  RainLevel float64 `json:"rainLevel"`                                   // *レインレベル
   UltraVioletA float64 `json:"ultraVioletA"`                             // *UVA
   UltraVioletB float64 `json:"ultraVioletB"`                             // UVB
   AccelerationX float64 `json:"accelerationX"`                           // *加速度X軸
@@ -62,22 +62,21 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
     http.Error(w, "Unauthorized", 401)
     return
   }
-
-  // HTML, JSの埋め込み文字列を配信する
-  var text string
+  // http.ServeFileは"/index.html"というパスは"/"に変えてリダイレクトしてしまう仕様のようである。
+  // 困ったことに、"/index.html"を返そうとすると"/index.html" -> "/" -> "/index.html"... となり返せない
+  // したがって、"/index.html" -> "/" -> "/main.html" となるように "/"のパスでmain.htmlを返すようにしている
+  var path string
   switch r.URL.Path {
-  case "/", "/index.html":
-    text = indexHTML
-  case "/static/main.js":
-    text = mainJS
+  case "/":
+    path = "static/main.html"
   default:
-    text = "no file"
+    path = r.URL.Path[1:]
   }
   w.Header().Add("Cache-Control", "no-store")
-  fmt.Fprintf(w, text)
+  http.ServeFile(w, r, path)
 }
 
-// "/stream"へのGETのハンドラ - index.m3u8, [nnn].tsを返す
+// "/video"へのGETのハンドラ - index.m3u8, [nnn].tsを返す
 func handleVideo(w http.ResponseWriter, r *http.Request, dir string) {
   if checkAuth(r) == false {
     w.Header().Add("WWW-Authenticate", `Basic realm="SECRET AREA"`)
@@ -85,7 +84,7 @@ func handleVideo(w http.ResponseWriter, r *http.Request, dir string) {
     http.Error(w, "Unauthorized", 401)
     return
   }
-  // /stream/index.m3u8という文字列からindex.m3u8というファイル名部分を取り出す
+  // /video/index.m3u8というパス文字列からindex.m3u8というファイル名部分を取り出す
   fileName := strings.Split(r.URL.Path[1:], "/")[1]
   w.Header().Add("Cache-Control", "no-store")
   http.ServeFile(w, r, dir + "/" + fileName)
@@ -97,11 +96,6 @@ func handleSensor(w http.ResponseWriter, r *http.Request) {
     w.Header().Add("WWW-Authenticate", `Basic realm="SECRET AREA"`)
     w.WriteHeader(http.StatusUnauthorized)
     http.Error(w, "Unauthorized", 401)
-    return
-  }
-  if r.Method != http.MethodGet {
-    w.WriteHeader(http.StatusMethodNotAllowed)
-    http.Error(w, "NotAllowed", 405)
     return
   }
   g_mutex.Lock()
@@ -199,7 +193,8 @@ func main() {
       log.Fatalf("Mqtt error: %s\n", token.Error())
     }
 
-    if subscribeToken := client.Subscribe("iwasaki/location001/sensor/notify", 0, f); subscribeToken.Wait() && subscribeToken.Error() != nil {
+    if subscribeToken := client.Subscribe("iwasaki/location001/sensor/notify", 0, f);
+      subscribeToken.Wait() && subscribeToken.Error() != nil {
       log.Fatalf("Mqtt error: %s\n", subscribeToken.Error())
     }
   }
@@ -208,212 +203,11 @@ func main() {
   startFFmpeg(args.videoSrc, args.videoCodec, args.videoDir)
 
   http.HandleFunc("/", handleIndex)
-  http.HandleFunc("/video/", func(w http.ResponseWriter, r *http.Request) { handleVideo(w, r, args.videoDir) })
-  http.HandleFunc("/api/sensor/", handleSensor)
+  http.HandleFunc("/video/", func(w http.ResponseWriter, r *http.Request) {
+    handleVideo(w, r, args.videoDir)
+  })
+  http.HandleFunc("/api/", handleSensor)
   fmt.Printf("Start Server (port:%d)\n", args.httpPort)
   http.ListenAndServe(fmt.Sprintf(":%d", args.httpPort), nil)
 }
 
-const indexHTML = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Sensor viewer</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.3/css/bulma.min.css" />
-</head>
-<body>
-<section class="hero is-primary is-fullheight">
-
-<link rel=stylesheet type=text/css href="//vjs.zencdn.net/7.11.4/video-js.min.css">
-
-<script src="//cdn.jsdelivr.net/npm/vue@2.6.10/dist/vue.min.js"></script>
-<script src="//cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-
-<div id="app" class="container has-text-centered">
-  <br/>
-
-  <div class="level">
-    <div class="level-left">
-      <div class="subtitle is-5 level-item">
-        <strong>[[ timeStampLabel ]]</strong>
-      </div>
-    </div>
-    <div class="level-right">
-      <button class="button is-info is-large is-rounded level-item" @click="fetchVideo" :disabled="isPolling">映像取得</button>
-      <button class="button is-info is-large is-rounded level-item" @click="fetchImage">画像取得</button>
-    </div>
-  </div>
-
-  <table class="table is-bordered is-fullwidth" style="table-layout: fixed;">
-    <tbody>
-      <tr>
-        <td style="height: 100px;" v-for="(sensor, index) in sensors[0]" :key="index">
-          <p class="has-text-primary-dark content" v-if="sensor.label.length < 5">[[ sensor.label ]]</p>
-          <p class="has-text-primary-dark content is-small" v-else>[[ sensor.label ]]</p>
-          <p class="has-text-primary-dark">[[ sensor.value + " "  + sensor.unit ]]</p>
-        </td>
-      </tr>
-      <tr>
-        <td style="height: 100px;" v-for="(sensor, index) in sensors[1]" :key="index">
-          <p class="has-text-primary-dark">[[ sensor.label ]]</p>
-          <p class="has-text-primary-dark">[[ sensor.value + " "  + sensor.unit ]]</p>
-        </td>
-      </tr>
-    </tbody>
-  </table>
-
-  <div class="level" v-if="!video">
-    <div class="level-item">
-      <p class="box has-text-primary-dark">映像を取得していません</p>
-    </div>
-  </div>
-
-  <div class="level">
-    <div class="level-item">
-      <video
-        id="video"
-        class="vjs-default-skin vjs-big-play-centered"
-        muted
-        playsinline
-        data-setup='{}'
-      />
-    </div>
-  </div>
-</div>
-
-<script src="static/main.js"></script>
-<script src="//vjs.zencdn.net/7.14.1/video.min.js"></script>
-
-</section>
-</body>
-</html>
-`
-
-const mainJS = `"use strict";
-
-new Vue({
-  el: "#app",
-  delimiters: ["[[", "]]"], // FlaskのJinja2のtemplate記法とのバッティングを回避する
-
-  data: {
-    sensorTimeStamp: new Date(),
-    sensors: [
-      [ // 環境センサーデータ sensors[0] 画面1段目 digit: 小数点以下桁数
-        { label: "温度", unit: "℃", key: "temperature", value: "", digit: 1 },
-        { label: "湿度", unit: "％", key: "humidity", value: "", digit: 0 },
-        { label: "気圧", unit: "hPa", key: "airPressure", value: "", digit: 0 },
-        { label: "風速", unit: "m/s", key: "windVelocity", value: "", digit: 1 },
-        { label: "風向き", unit: "deg", key: "windDirection", value: "", digit: 1 },
-        { label: "最大瞬間風速", unit: "m/s", key: "maxInstWindVelocity", value: "", digit: 1 },
-        { label: "最大瞬間時風向き", unit: "deg", key: "directMaxInstWindVelocity", value: "", digit: 1 },
-        { label: "照度", unit: "lx", key: "illuminance", value: "", digit: 0 },
-        { label: "UV", unit: "w/m2", key: "ultraVioletA", value: "", digit: 1 },
-      ],
-      [ // 環境センサーデータ sensors[1] 画面2段目
-        { label: "レインレベル", unit: "", key: "rainLevel", value: "", digit: 0 },
-        { label: "加速度X軸", unit: "G", key: "accelerationX", value: "", digit: 1 },
-        { label: "加速度Y軸", unit: "G", key: "accelerationY", value: "", digit: 1 },
-        { label: "加速度Z軸", unit: "G", key: "accelerationZ", value: "", digit: 1 },
-        { label: "傾きXZ軸", unit: "deg", key: "inclinationXZ", value: "", digit: 1 },
-        { label: "傾きYZ軸", unit: "deg", key: "inclinationYZ", value: "", digit: 1 },
-        { label: "エラーフラグ", unit: "", key: "errorFlag", value: "", digit: 0 },
-        { label: "", unit: "", key: "", value: "", digit: 0 },
-        { label: "", unit: "", key: "", value: "", digit: 0 },
-      ]
-    ],
-    pollingTimerObj: null, // 環境センサデータのポーリング用タイマ
-    pollingPeriodTime: 1000, // 環境センサデータのポーリング間隔
-    video: null, // videojsのプレイヤー
-  },
-
-  computed: {
-    isPolling() {
-      // ポーリングタイマオブジェクトが存在している場合はポーリング実行中である
-      return this.pollingTimerObj != null;
-    },
-
-    timeStampLabel() {
-      const dt = this.sensorTimeStamp;
-      const yyyy = dt.getFullYear();
-      const MM = dt.getMonth() + 1;
-      const dd = dt.getDate();
-      const HH = dt.getHours();
-      const mm = dt.getMinutes();
-      const week = ["日", "月", "火", "水", "木", "金", "土"][dt.getDay()];
-      return yyyy + "年" + MM + "月" + dd + "日 (" + week + ") " + HH + "時" + mm + "分";
-    }
-  },
-
-  methods: {
-    // 映像取得
-    //   - カメラのHLS動画を再生する
-    //   - 環境センサ値のポーリング取得を開始する
-    fetchVideo() {
-      // 環境センサ値のポーリング開始
-      if (this.pollingTimerObj)
-        clearInterval(this.pollingTimerObj);
-      this.pollingTimerObj = setInterval(this.fetchSensorData, this.pollingPeriodTime);
-      // ライブラリの読み込み順がvue -> videoの順でないとうまく再生できない
-      // そのためvideoオブジェクトの生成は映像取得開始時にする
-      this.video = videojs('video');
-      // index.m3u8を取り直す
-      this.video.reset();
-      this.video.src("/video/index.m3u8");
-      // 再生
-      this.video.play();
-      this.video.one("loadedmetadata", () => {
-        const w = this.video.videoWidth();
-        const h = this.video.videoHeight();
-        console.log("video size: " + w + "x" + h);
-      });
-    },
-
-    // 画像取得
-    //   - カメラのHLS動画を取得し、すぐに停止して最新画像を表示する
-    //   - 環境センサ値のポーリングは行わない
-    fetchImage() {
-      if (this.pollingTimerObj) {
-        clearInterval(this.pollingTimerObj);
-        this.pollingTimerObj = null;
-      }
-      this.video = videojs('video');
-      // index.m3u8を取り直す
-      this.video.reset();
-      this.video.src("/video/index.m3u8");
-      // 再生
-      this.video.play();
-      // 再生が開始されたら停止して、画像が残るようにpauseにしておく
-      this.video.one("playing", () => {
-        this.video.pause();
-        this.video.one("pause", () => {
-          const { length, end } = this.video.seekable();
-          if (length < 1) return;
-          this.video.currentTime(end(length-1));
-        });
-      });
-    },
-
-    // 環境センサデータをサーバから取得する
-    async fetchSensorData() {
-      const {data: resSensor} = await axios.get("/api/sensor/");
-      this.sensorTimeStamp = new Date(Date.parse(resSensor.timestamp));
-      for (const sensor_ of this.sensors) {
-        for (const sensor of sensor_) {
-          if (sensor.key) {
-            const d = Math.pow(10, sensor.digit);
-            const n = Math.floor(resSensor[sensor.key] * d) / d;
-            sensor.value = n.toFixed(sensor.digit);
-          }
-        }
-      }
-    }
-  },
-
-  beforeDestroy() {
-    if (this.video)
-      this.video.dispose();
-  }
-});
-`
